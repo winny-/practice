@@ -1,6 +1,7 @@
 #lang racket
 
 (require rackunit
+         math/array
          "day6.rkt")
 
 (check-equal? (string->instruction "turn on 0,0 through 999,999")
@@ -12,14 +13,18 @@
 (check-false (string->instruction "bomb the bejesus out of those forces"))
 (check-false (string->instruction "do nothing on 0,0 through 1,1"))
 
-(check-equal? (length (make-grid)) 999)
-(check-equal? (length (first (make-grid))) 999)
-(check-equal? (list-ref (list-ref (make-grid #f) 999) 999) #f)
+(define empty-grid (make-grid #f))
 
-(check-equal? (sum-grid (make-grid #t) #t) 998001)
-(check-equal? (sum-grid (make-grid #f) #t) 0)
+(check-equal? (array-shape empty-grid) #(1000 1000))
+(check-equal? (array-ref empty-grid #(0 0)) #f)
 
-(check-equal? (play-lightshow '()) (make-grid))
+
+(check-equal? (sum-grid (make-grid #t) #t) 1000000)
+(check-equal? (sum-grid empty-grid #t) 0)
+
+(check-equal? (play-lightshow '()) empty-grid)
+
 
 (check-equal? (execute-instruction (instruction 'on (cons 0 0) (cons 999 999)) (make-grid))
               (make-grid #t))
+

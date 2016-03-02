@@ -1,13 +1,15 @@
 #lang racket
 
+(require math/array)
+
 ;; For http://adventofcode.com/day/6
 
 (provide (all-defined-out))
 
-;; Operation should be 'on 'off or 'toggle
+;; Op should be 'on 'off or 'toggle
 ;; left should be a vector of two numbers
 ;; right should be a vector of two numbers
-(struct instruction (operation left right)
+(struct instruction (op left right)
   #:transparent)
 
 (define/contract (string->instruction s)
@@ -23,24 +25,19 @@
                    (cons (string->number (fifth groups)) (string->number (sixth groups))))))
 
 (define/contract (execute-instruction ins grid)
-  (-> instruction? (listof list?) (listof list?))
-  (define update-cell (match (instruction-operation ins)
-                        ['on (λ (cell) #t)]
-                        ['off (λ (cell) #f)]
-                        ['toggle not]))
-  (define left (instruction-left ins))
-  (define right (instruction-right ins))
-  (for ([row (in-range (car left) (add1 (car right)))])
-    (set! grid (list-set grid row (for/list ([cell (list-ref grid row)]
-                                             [column (in-range 1000)])
-                                    (if (or (>= column (cdr left)) (<= column (cdr right)))
-                                        (update-cell cell)
-                                        cell)))))
+  (-> instruction? mutable-array? mutable-array?)
+  (define update (match (instruction-op ins)
+                   ['on (λ (cell) #t)]
+                   ['off (λ (cell) #f)]
+                   ['toggle not]))
+  (for ([row (in-range (car (instruction-left ins)) (add1 (car (instruction-right ins))))])
+    (for ([col (in-range (cdr (instruction-left ins)) (add1 (cdr (instruction-right ins))))])
+      (array-set! grid (vector row col) (update (array-ref grid (vector row col))))))
   grid)
 
 
 (define/contract (play-lightshow instructions [grid #f])
-  (->* [(listof instruction?)] [((or/c listof list?) false?)] (listof list?))
+  (->* [(listof instruction?)] [(or/c mutable-array? false?)] mutable-array?)
   (when (false? grid)
     (set! grid (make-grid)))
   (if (empty? instructions)
@@ -49,14 +46,13 @@
                       (execute-instruction (first instructions) grid))))
 
 (define/contract (sum-grid grid [state #t])
-  (->* [(listof list?)] [boolean?] exact-nonnegative-integer?)
-  (for/sum ([row grid])
-    (for/sum ([cell row])
-      (if (equal? cell state) 1 0))))
+  (->* [mutable-array?] [boolean?] exact-nonnegative-integer?)
+  (array-count (curry equal? state) grid))
 
 (define/contract (make-grid [state #f])
-  (->* [] [boolean?] (listof list?))
-  (make-list 999 (make-list 999 state)))
+  (->* [] [boolean?] mutable-array?)
+  (array->mutable-array (make-array #(1000 1000) state)))
+
 
 (module+ main
   (define instructions (port->list (λ (ip) (match (read-line ip)
