@@ -1,8 +1,9 @@
-#lang racket
+#lang typed/racket
 
-(require rackunit
-         math/array
-         "day6.rkt")
+(require
+  typed/rackunit
+  math/array
+  "day6.rkt")
 
 (check-equal? (string->instruction "turn on 0,0 through 999,999")
               (instruction 'on (cons 0 0) (cons 999 999)))
