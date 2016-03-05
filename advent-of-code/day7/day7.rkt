@@ -34,22 +34,22 @@
       line
       (string->gate line)))
 
-(define (sort-circuit gates)
-  gates)
-
-(define (execute-gate g state)
-  (define (f s-or-n)
-    (if (string? s-or-n)
-        (hash-ref state s-or-n 0)
-        s-or-n))
-  (hash-set state (gate-dest g) (apply (hash-ref operations (gate-op g)) (map f (gate-args g)))))
-
-(define (execute-circuit gates [state #f])
-  (define st (if state state (hash)))
-  (if (empty? gates)
-      st
-      (run (rest gates)
-           (execute-gate (first gates) st))))
+(define (execute-circuit circuit)
+  (define state (make-hash))
+  (let loop ()
+    (for ([g circuit])
+      (when (andmap (λ (x) (or (number? x) (hash-ref state x #f)))
+                    (gate-args g))
+          (hash-set! state (gate-dest g)
+                     (apply (hash-ref operations (gate-op g))
+                            (map (λ (x) (if (number? x)
+                                            x
+                                            (hash-ref state x)))
+                                 (gate-args g))))
+          (set! circuit (remove g circuit))))
+    (if (not (null? circuit))
+        (loop)
+        state)))
 
 (module+ main
-  (hash-ref (execute-circuit (sort-circuit (port->list read-gate))) "a"))
+  (hash-ref (execute-circuit (port->list read-gate)) "a"))
