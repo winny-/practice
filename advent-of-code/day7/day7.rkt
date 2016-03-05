@@ -34,22 +34,22 @@
       line
       (string->gate line)))
 
-(define (execute-circuit circuit)
-  (define state (make-hash))
-  (let loop ()
-    (for ([g circuit])
-      (when (andmap (λ (x) (or (number? x) (hash-ref state x #f)))
-                    (gate-args g))
-          (hash-set! state (gate-dest g)
-                     (apply (hash-ref operations (gate-op g))
-                            (map (λ (x) (if (number? x)
-                                            x
-                                            (hash-ref state x)))
-                                 (gate-args g))))
-          (set! circuit (remove g circuit))))
-    (if (not (null? circuit))
-        (loop)
-        state)))
+(define (execute-gate g state)
+  (define (get-wire x)
+    (if (number? x)
+        x
+        (hash-ref state x)))
+  (hash-set state (gate-dest g) (apply (hash-ref operations (gate-op g))
+                                       (map get-wire (gate-args g)))))
+
+(define (execute-circuit circuit [state (hash)])
+  (define (deps-satisfied? g)
+    (andmap (λ (x) (or (number? x) (hash-ref state x #f)))
+            (gate-args g)))
+  (cond
+    [(null? circuit) state]
+    [(deps-satisfied? (car circuit)) (execute-circuit (cdr circuit) (execute-gate (car circuit) state))]
+    [else (execute-circuit (append (cdr circuit) (list (car circuit))) state)]))
 
 (module+ main
   (hash-ref (execute-circuit (port->list read-gate)) "a"))
