@@ -5,13 +5,24 @@
     [#\( 1]
     [#\) -1]
     [_ 0]))
-(define (calculate-floor s)
-  (sum (map f2n (string->list s))))
+
 (define (read-floor input-port)
   (let ([char (read-char input-port)])
     (if (eof-object? char)
         char
         (f2n char))))
-(define (sum lst) (foldl + 0 lst))
 
-(displayln (sum (port->list read-floor)))
+(define (follow lst value #:index [index 0] #:accumulator [accumulator 0])
+  (if (null? lst)
+      #f
+      (begin
+        (set! accumulator (+ (car lst) accumulator))
+        (if (equal? accumulator value)
+            index
+            (follow (cdr lst) value #:index (add1 index) #:accumulator accumulator)))))
+
+
+(module+ main
+  (define lst (port->list read-floor))
+  (displayln (format "Santa stopped floor ~a" (apply + lst)))
+  (displayln (format "Santa first reaches the basement at position ~a" (add1 (follow lst -1)))))
